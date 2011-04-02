@@ -12,7 +12,6 @@
 
 package org.servalproject;
 
-import java.io.BufferedOutputStream;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,7 +20,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -30,8 +28,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.servalproject.data.ClientData;
 import org.servalproject.system.BluetoothService;
@@ -49,7 +45,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.res.AssetManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -202,8 +197,6 @@ public class ServalBatPhoneApplication extends Application {
 		} catch (Exception e) {
 			this.primaryNumber = settings.getString("primaryNumber", ""); 
 		}
-		ipaddr=settings.getString("lannetworkpref",ipaddr+"/8");
-		if (ipaddr.indexOf('/')>0) ipaddr = ipaddr.substring(0, ipaddr.indexOf('/'));
 		
         // preferenceEditor
         this.preferenceEditor = settings.edit();
@@ -512,7 +505,7 @@ public class ServalBatPhoneApplication extends Application {
 			this.acquireWakeLock();
 			
 			return true;
-		} catch (Exception e) {
+		} catch (IOException e) {
 			this.displayToastMessage(e.toString());
 	    	return false;
 		}
@@ -532,7 +525,7 @@ public class ServalBatPhoneApplication extends Application {
     	try {
 			this.coretask.runRootCommand(this.coretask.DATA_FILE_PATH+"/bin/adhoc stop 1");
 			stopped=true;
-		} catch (Exception e) {
+		} catch (IOException e) {
     		this.displayToastMessage(e.toString());
 		}
 		this.notificationManager.cancelAll();
@@ -757,7 +750,7 @@ public class ServalBatPhoneApplication extends Application {
     public void setPrimaryNumber(String newNumber){
 		// Create default HLR entry
 		try{
-			this.coretask.runRootCommand(ServalBatPhoneApplication.this.coretask.DATA_FILE_PATH+"/bin/set_number "+newNumber+" "+ipaddr);
+			ServalBatPhoneApplication.this.coretask.runRootCommand(ServalBatPhoneApplication.this.coretask.DATA_FILE_PATH+"/bin/set_number "+newNumber+" "+ipaddr);
 			
 			primaryNumber=newNumber;
 			Editor ed= ServalBatPhoneApplication.this.settings.edit();
@@ -765,51 +758,22 @@ public class ServalBatPhoneApplication extends Application {
 			ed.commit();
 		}catch(Exception e){
 			Log.v("BatPhone","Failed to set phone number",e);
-			this.displayMessage("Failed to set number");
+			this.displayToastMessage("Failed to set number");
 		}
     }
     
     public void installFiles() {
 		try{
-			OutputStreamWriter installScript = new OutputStreamWriter(new BufferedOutputStream(this.openFileOutput("installScript",0),8*1024));
-			installScript.write("#!/system/bin/sh\n");
-			installScript.write("busybox chown -R `busybox ls -ld "+this.coretask.DATA_FILE_PATH+" | busybox awk '{ printf(\"%s:%s\",$3,$4);}'` "+this.coretask.DATA_FILE_PATH+"\n");
-			installScript.write("mkdir "+this.coretask.DATA_FILE_PATH+"/lib/asterisk\n");
-			installScript.write("mkdir "+this.coretask.DATA_FILE_PATH+"/lib/asterisk/modules\n");
-			AssetManager m=this.getAssets();
-			ZipInputStream str=new ZipInputStream(m.open("serval.zip"));
-			int i=0;
-			while(true){
-				ZipEntry ent=str.getNextEntry();
-				if (ent==null) break;
-				try{
-					i++;
-					if (ent.isDirectory()){
-						File dir=new File(this.coretask.DATA_FILE_PATH+"/"+ent.getName()+"/x");
-						if (!dir.mkdirs())
-							Log.v("BatPhone","Failed to create path "+ent.getName());
-					}else{
-						File outFile=new File(this.coretask.DATA_FILE_PATH+"/files/", Integer.toString(i));
-						installScript.write("mv "+outFile.getAbsolutePath()+" "+
-								this.coretask.DATA_FILE_PATH+"/"+ent.getName()+"\n");
-						BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(outFile),8*1024);
-						int len;
-						byte buff[]=new byte[1024];
-				    	while((len = str.read(buff))>0) {
-							out.write(buff,0,len);
-						}
-				    	out.close();
-					}
-				}catch(Exception e){
-					Log.v("BatPhone",e.toString(),e);
-				}
-				str.closeEntry();
-			}
-			str.close();
-			
-			installScript.write("busybox chmod 755 "+this.coretask.DATA_FILE_PATH+"/*bin/* "+this.coretask.DATA_FILE_PATH+"/lib/* "+this.coretask.DATA_FILE_PATH+"/lib/asterisk/modules "+this.coretask.DATA_FILE_PATH+"/conf\n");
-			
+	    	// get tar ball of fun, and then extract it 		   
+		    ServalBatPhoneApplication.this.copyFile(ServalBatPhoneApplication.this.coretask.DATA_FILE_PATH+"/var/serval.tgz", "0644", R.raw.serval);
+		    ServalBatPhoneApplication.this.copyFile(ServalBatPhoneApplication.this.coretask.DATA_FILE_PATH+"/bin/servalextract", "0755", R.raw.servalextract);
+    		ServalBatPhoneApplication.this.coretask.runRootCommand(ServalBatPhoneApplication.this.coretask.DATA_FILE_PATH+"/bin/servalextract");
+    		
 			// Create nvram.txt with random MAC address for those platforms that need it.
+			BufferedReader a=null;
+			BufferedReader b =null;
+			a=new BufferedReader(new FileReader("/data/data/org.servalproject/conf/nvram.top"));
+			b=new BufferedReader(new FileReader("/data/data/org.servalproject/conf/nvram.end"));
 			String mac = new String();
 			SecureRandom random = new SecureRandom();
 			byte[] bytes = new byte[6];
@@ -829,6 +793,10 @@ public class ServalBatPhoneApplication extends Application {
 							bytes[5]<0?256+bytes[5]:bytes[5]
 							);
 			
+			Editor ed= ServalBatPhoneApplication.this.settings.edit();
+			ed.putString("lannetworkpref",ipaddr+"/8");
+			ed.commit();
+			
 			String number=primaryNumber;
 			if (number==null||"".equals(number)){
 				// get number from phone
@@ -841,22 +809,8 @@ public class ServalBatPhoneApplication extends Application {
 				number = String.format("%d%09d",
 						2+(bytes[5]&3),Math.abs(random.nextInt())%1000000000);
 			}
-			//setPrimaryNumber(number);
-			installScript.write(this.coretask.DATA_FILE_PATH+"/bin/set_number "+number+" "+ipaddr+"\n");
-			installScript.close();
+			setPrimaryNumber(number);
 			
-			this.coretask.chmod(this.coretask.DATA_FILE_PATH+"/files/installScript", "755");
-			this.coretask.runRootCommand(this.coretask.DATA_FILE_PATH+"/files/installScript");
-			
-			primaryNumber=number;
-			Editor ed= ServalBatPhoneApplication.this.settings.edit();
-			ed.putString("primaryNumber",primaryNumber);
-			ed.putString("lannetworkpref",ipaddr+"/8");
-			ed.commit();
-			primaryNumber=number;
-			
-			BufferedReader a=new BufferedReader(new FileReader(this.coretask.DATA_FILE_PATH+"/conf/nvram.top"));
-			BufferedReader b=new BufferedReader(new FileReader(this.coretask.DATA_FILE_PATH+"/conf/nvram.end"));
 			String line=null;
 			String ls = System.getProperty("line.separator");
 			StringBuilder stringBuilder = new StringBuilder();
@@ -980,9 +934,14 @@ public class ServalBatPhoneApplication extends Application {
     				"/voiceSignature"};
     		for (String dirname : dirs) {
     			dir = new File(this.coretask.DATA_FILE_PATH + dirname);
-    			if (!dir.mkdirs()) {
-   	    			this.displayToastMessage("Couldn't create " + dirname + " directory!");
-   	    		}
+    	    	if (!dir.exists()) {
+    	    		if (!dir.mkdir()) {
+    	    			this.displayToastMessage("Couldn't create " + dirname + " directory!");
+    	    		}
+    	    	}
+    	    	else {
+    	    		Log.d(MSG_TAG, "Directory '"+dir.getAbsolutePath()+"' already exists!");
+    	    	}
     		}
     	}
     }

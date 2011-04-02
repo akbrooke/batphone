@@ -1,0 +1,10 @@
+INSTALLING THIS RELEASE OF SERVAL BATPHONE
+------------------------------------------
+
+This version of the BatPhone application contains the IJetty webserver integrated into it. Installation is done as usual, via the ant build.xml script. However, the -lib deps/ijetty.jar will need to be passed to ant:
+
+   $ ant debug -lib deps/ijetty.jar
+
+This is because IJetty relies on pre-compiled classes from the original Jetty project.
+
+Adam Brooke (akbrooke@gmail.com)
