@@ -381,7 +381,7 @@
 <string name="help_speakerphone">Press and hold volume buttons to force talk</string>
 <string name="menu_create">New PBX linked to my Google Voice</string>
 
-<string name="jetty_started">Jetty started</string>
+    <string name="jetty_started">Jetty started</string>
     <string name="jetty_starting">Jetty starting</string>
     <string name="jetty_stopping">Jetty stopping</string>
     <string name="jetty_not_started">Jetty not started</string>
@@ -469,4 +469,5 @@
     <string name="sd_media_unmountable"><b>MEDIA_UNMOUNTABLE</b>\n\nMedia is present, but the Android OS cannot mount it.\nThis typically happens if the filesystem or media is bad or corrupted.\nReplace media and try again.</string>
     <string name="sd_unknown"><b>UNHANDLED ERROR</b>\n\nMedia state cannot be determined.\nState being reported by Android is <u>%s</u></string>
     <string name="sd_not_available">SD Not (yet) Available</string>
+
 </resources>

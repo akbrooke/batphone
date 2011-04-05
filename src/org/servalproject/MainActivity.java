@@ -31,7 +31,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-
 import org.servalproject.R;
 import org.servalproject.rhizome.IJetty;
 import org.servalproject.system.NativeTask;
@@ -433,6 +432,7 @@ public class MainActivity extends Activity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		boolean supRetVal = super.onCreateOptionsMenu(menu);
 		SubMenu setup = menu.addSubMenu(0, MENU_SETUP, 0, getString(R.string.setuptext));
+
 		setup.setIcon(drawable.ic_menu_preferences);
 		
 		SubMenu m = menu.addSubMenu(0, MENU_SIP_SETUP, 0, R.string.menu_settings);
@@ -446,7 +446,7 @@ public class MainActivity extends Activity {
 		log.setIcon(drawable.ic_menu_agenda);
 		SubMenu about = menu.addSubMenu(0, MENU_ABOUT, 0, getString(R.string.abouttext));
 		about.setIcon(drawable.ic_menu_info_details);
-		menu.addSubMenu(0, MENU_JETTY, 0, "iJetty");
+		menu.addSubMenu(0, MENU_JETTY, 0, "iJetty");    	
 		return supRetVal;
 	}
 
@@ -476,7 +476,7 @@ public class MainActivity extends Activity {
 			break;
 		case MENU_JETTY :
 			startActivity(new Intent(
-					MainActivity.this, IJetty.class));
+					MainActivity.this, IJetty.class));   		
 		}
 		return supRetVal;
 	}    
